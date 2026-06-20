@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Echo360 Speed Enhancer",
+  "version": "1.1.0",
+  "description": "Adds 2.5×, 3×, 3.5×, and 4× playback speed options to the Echo360 player.",
+
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.echo360.net.au/*",
+        "*://echo360.net.au/*",
+        "*://*.echo360.org.au/*",
+        "*://echo360.org.au/*",
+        "*://*.echo360.com/*",
+        "*://echo360.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true,
+      "world": "MAIN"
+    }
+  ],
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "echo360-speed-enhancer@addon",
+      "strict_min_version": "109.0"
+    }
+  }
+}
