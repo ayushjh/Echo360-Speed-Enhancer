@@ -22,6 +22,12 @@
    */
   let enforcedRate = null;
 
+  /**
+   * Cached reference to the speed toggle button element(s) on the control bar.
+   * This drastically avoids doing an expensive global querySelectorAll on every sync.
+   */
+  let cachedToggles = [];
+
   /* ── Speed-label detection ───────────────────────────────────────── */
 
   /** Returns true if el's text content looks like a playback-speed label. */
@@ -378,10 +384,31 @@
   /* ── Update the label on the control-bar toggle button ──────────── */
 
   function updateToggleLabel(rate) {
+    // Filter out any disconnected elements from the cache
+    cachedToggles = cachedToggles.filter(el => el.isConnected);
+
+    // If we have cached elements, update them directly and return!
+    if (cachedToggles.length > 0) {
+      cachedToggles.forEach(el => {
+        const node = walkTextNodes(el, n => /\d/.test(n.textContent));
+        if (node) {
+          const oldText = node.textContent;
+          const newText = oldText.replace(/\d+(?:\.\d+)?/, rate);
+          if (oldText !== newText) {
+            node.textContent = newText;
+            console.debug('[Speed+] Updated cached toggle label from:', oldText, 'to:', newText);
+          }
+        }
+      });
+      return;
+    }
+
     const container = document.querySelector(`[${CONTAINER_ATTR}]`);
     const candidates = document.querySelectorAll(
       'button, [role="button"], [class*="speed" i], [class*="rate" i], [class*="control" i], [class*="player" i]'
     );
+
+    const newToggles = [];
     candidates.forEach(el => {
       if (container?.contains(el)) return;
       if (el.hasAttribute(BUTTON_ATTR)) return;
@@ -397,8 +424,11 @@
           node.textContent = newText;
           console.debug('[Speed+] Updated toggle label from:', oldText, 'to:', newText);
         }
+        newToggles.push(el);
       }
     });
+
+    cachedToggles = newToggles;
   }
 
   /* ── Watcher & Boot ─────────────────────────────────────────────── */
