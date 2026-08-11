@@ -14,6 +14,7 @@
   const CONTAINER_ATTR = 'data-spd-enhanced';
   const BUTTON_ATTR    = 'data-spd-rate';
   const MSG_TYPE       = 'echo360-speed-enhancer-set-rate';
+  const RATE_REGEX     = /(\d+(?:\.\d+)?)\s*[x×]/i;
 
   /**
    * The rate we want enforced. Set when a custom or native button is
@@ -27,12 +28,12 @@
   /** Returns true if el's text content looks like a playback-speed label. */
   function looksLikeSpeed(el) {
     const t = el.textContent.trim();
-    return t.length <= 10 && /\d+(?:\.\d+)?\s*[x×]/i.test(t);
+    return t.length <= 10 && RATE_REGEX.test(t);
   }
 
   /** Extract the numeric rate from an element's text, or null. */
   function parseRate(el) {
-    const m = el.textContent.match(/(\d+(?:\.\d+)?)\s*[x×]/i);
+    const m = el.textContent.match(RATE_REGEX);
     return m ? parseFloat(m[1]) : null;
   }
 
