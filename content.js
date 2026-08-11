@@ -101,20 +101,77 @@
     syncUI(rate);
   }
 
+  /** Check if the given origin is trusted (same-origin or matches Echo360 domains). */
+  function isTrustedOrigin(origin) {
+    if (!origin || origin === 'null') return false;
+    if (origin === window.location.origin) return true;
+    try {
+      const url = new URL(origin);
+      const hostname = url.hostname.toLowerCase();
+      return /(^|\.)echo360\.(net\.au|org\.au|com)$/i.test(hostname);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /** Get the expected origin of an iframe, falling back to window.location.origin. */
+  function getIframeOrigin(iframe) {
+    try {
+      const origin = iframe.contentWindow?.location?.origin;
+      if (origin && origin !== 'null') {
+        return origin;
+      }
+    } catch (_) {}
+
+    const src = iframe.getAttribute('src');
+    if (!src || src.trim() === '' || src === 'about:blank') {
+      return window.location.origin;
+    }
+
+    try {
+      const url = new URL(src, window.location.href);
+      return url.origin !== 'null' ? url.origin : window.location.origin;
+    } catch (_) {
+      return window.location.origin;
+    }
+  }
+
   /** Post rate to every reachable frame. */
   function broadcastRate(rate) {
     const msg = { type: MSG_TYPE, rate };
     document.querySelectorAll('iframe').forEach(iframe => {
-      try { iframe.contentWindow.postMessage(msg, '*'); } catch (_) {}
+      try {
+        const origin = getIframeOrigin(iframe);
+        if (isTrustedOrigin(origin)) {
+          iframe.contentWindow.postMessage(msg, origin);
+        }
+      } catch (_) {}
     });
     if (window !== window.top) {
-      try { window.parent.postMessage(msg, '*'); } catch (_) {}
+      try {
+        // Use document.referrer as the potential origin of the parent window
+        let parentOrigin = null;
+        if (document.referrer) {
+          try {
+            parentOrigin = new URL(document.referrer).origin;
+          } catch (_) {}
+        }
+        // Fallback to window.parent/top location if accessible (same-origin case)
+        if (!parentOrigin) {
+          try {
+            parentOrigin = window.parent.origin || window.parent.location.origin;
+          } catch (_) {}
+        }
+        if (parentOrigin && isTrustedOrigin(parentOrigin)) {
+          window.parent.postMessage(msg, parentOrigin);
+        }
+      } catch (_) {}
     }
   }
 
   /* Listen for rate broadcasts from other frames. */
   window.addEventListener('message', e => {
-    if (e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
+    if (isTrustedOrigin(e.origin) && e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
       applyRate(e.data.rate, /* broadcast */ false);
     }
   });
