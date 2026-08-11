@@ -38,9 +38,9 @@
 
   /* ── playbackRate prototype patch ───────────────────────────────── */
 
-  const nativePBR = Object.getOwnPropertyDescriptor(
-    HTMLMediaElement.prototype, 'playbackRate'
-  );
+  const nativePBR = typeof HTMLMediaElement !== 'undefined'
+    ? Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'playbackRate')
+    : null;
 
   /**
    * Monkey-patch HTMLMediaElement.prototype.playbackRate.
@@ -113,28 +113,32 @@
   }
 
   /* Listen for rate broadcasts from other frames. */
-  window.addEventListener('message', e => {
-    if (e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
-      applyRate(e.data.rate, /* broadcast */ false);
-    }
-  });
+  if (typeof window !== 'undefined') {
+    window.addEventListener('message', e => {
+      if (e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
+        applyRate(e.data.rate, /* broadcast */ false);
+      }
+    });
+  }
 
   /* Enforce speed on any external ratechange events (capture phase). */
-  document.addEventListener('ratechange', e => {
-    if (enforcedRate === null) return;
-    const video = e.target;
-    if (video instanceof HTMLMediaElement) {
-      const cur = nativePBR ? nativePBR.get.call(video) : video.playbackRate;
-      if (Math.abs(cur - enforcedRate) >= 0.01) {
-        console.debug('[Speed+] Enforcing rate on ratechange event:', enforcedRate);
-        if (nativePBR) {
-          nativePBR.set.call(video, enforcedRate);
-        } else {
-          video.playbackRate = enforcedRate;
+  if (typeof document !== 'undefined') {
+    document.addEventListener('ratechange', e => {
+      if (enforcedRate === null) return;
+      const video = e.target;
+      if (typeof HTMLMediaElement !== 'undefined' && video instanceof HTMLMediaElement) {
+        const cur = nativePBR ? nativePBR.get.call(video) : video.playbackRate;
+        if (Math.abs(cur - enforcedRate) >= 0.01) {
+          console.debug('[Speed+] Enforcing rate on ratechange event:', enforcedRate);
+          if (nativePBR) {
+            nativePBR.set.call(video, enforcedRate);
+          } else {
+            video.playbackRate = enforcedRate;
+          }
         }
       }
-    }
-  }, true);
+    }, true);
+  }
 
   /* ── DOM helpers ────────────────────────────────────────────────── */
 
@@ -427,10 +431,20 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
-    boot();
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+  }
+
+  // Export functions if running in Node environment for testing
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+      looksLikeSpeed,
+      parseRate
+    };
   }
 
 })();
