@@ -15,6 +15,11 @@
   const BUTTON_ATTR    = 'data-spd-rate';
   const MSG_TYPE       = 'echo360-speed-enhancer-set-rate';
 
+  // Constants for cleaning and matching checkmarks / symbols
+  const CLEAN_CHECKMARK_REGEX       = /[✓✔☑✅✕✗✘⬤●]\s*/gu;
+  const CLEAN_CHECKMARK_START_REGEX = /^[✓✔☑✅✕✗✘⬤●]\s*/gu;
+  const HAS_ACTIVE_CHECKMARK_REGEX  = /[✓✔☑✅]/;
+
   /**
    * The rate we want enforced. Set when a custom or native button is
    * clicked. The patched playbackRate setter uses this to override
@@ -227,7 +232,7 @@
     const cw = document.createTreeWalker(btn, NodeFilter.SHOW_TEXT);
     let tn;
     while ((tn = cw.nextNode())) {
-      tn.textContent = tn.textContent.replace(/[✓✔☑✅✕✗✘⬤●]\s*/gu, '');
+      tn.textContent = tn.textContent.replace(CLEAN_CHECKMARK_REGEX, '');
     }
 
     // Update speed label text
@@ -362,11 +367,11 @@
       // Sync unicode checkmarks in text content
       const textNode = walkTextNodes(el, n => /\d/.test(n.textContent));
       if (textNode) {
-        const hasCheck = /[✓✔☑✅]/.test(textNode.textContent);
+        const hasCheck = HAS_ACTIVE_CHECKMARK_REGEX.test(textNode.textContent);
         if (isActive && !hasCheck) {
-          textNode.textContent = '✓ ' + textNode.textContent.trim().replace(/^[✓✔☑✅✕✗✘⬤●]\s*/gu, '');
+          textNode.textContent = '✓ ' + textNode.textContent.trim().replace(CLEAN_CHECKMARK_START_REGEX, '');
         } else if (!isActive && hasCheck) {
-          textNode.textContent = textNode.textContent.replace(/^[✓✔☑✅✕✗✘⬤●]\s*/gu, '');
+          textNode.textContent = textNode.textContent.replace(CLEAN_CHECKMARK_START_REGEX, '');
         }
       }
     });
