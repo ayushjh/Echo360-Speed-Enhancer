@@ -144,14 +144,18 @@
     return null;
   }
 
+  let cachedActiveClasses = null;
+
   function gatherActiveClasses(container) {
+    if (cachedActiveClasses) return cachedActiveClasses;
     const found = new Set();
     container.querySelectorAll('[class]').forEach(el =>
       el.classList.forEach(c => {
         if (/\bactive\b|\bselected\b|\bcurrent\b|\bhighlight/i.test(c)) found.add(c);
       })
     );
-    return [...found];
+    cachedActiveClasses = [...found];
+    return cachedActiveClasses;
   }
 
   /* ── CSS Injection ──────────────────────────────────────────────── */
@@ -198,9 +202,22 @@
     (document.head || document.documentElement).appendChild(style);
   }
 
+  let cachedSpeedContainer = null;
+
   /* ── Finding the speed panel container ──────────────────────────── */
 
   function findSpeedContainer() {
+    if (cachedSpeedContainer && document.contains(cachedSpeedContainer)) {
+      return cachedSpeedContainer;
+    }
+
+    const enhanced = document.querySelector(`[${CONTAINER_ATTR}]`);
+    if (enhanced) {
+      cachedSpeedContainer = enhanced;
+      cachedActiveClasses = null;
+      return enhanced;
+    }
+
     const candidates = document.querySelectorAll(
       'button, li, div, span, a, [role="option"], [role="menuitem"], [role="radio"]'
     );
@@ -215,6 +232,10 @@
 
     let best = null, bestN = 2;
     counts.forEach((n, p) => { if (n > bestN) { bestN = n; best = p; } });
+    if (best) {
+      cachedSpeedContainer = best;
+      cachedActiveClasses = null;
+    }
     return best;
   }
 
@@ -360,7 +381,11 @@
       }
 
       // Sync unicode checkmarks in text content
-      const textNode = walkTextNodes(el, n => /\d/.test(n.textContent));
+      let textNode = el._spdTextNode;
+      if (textNode === undefined) {
+        textNode = walkTextNodes(el, n => /\d/.test(n.textContent));
+        el._spdTextNode = textNode;
+      }
       if (textNode) {
         const hasCheck = /[✓✔☑✅]/.test(textNode.textContent);
         if (isActive && !hasCheck) {
@@ -378,7 +403,7 @@
   /* ── Update the label on the control-bar toggle button ──────────── */
 
   function updateToggleLabel(rate) {
-    const container = document.querySelector(`[${CONTAINER_ATTR}]`);
+    const container = findSpeedContainer();
     const candidates = document.querySelectorAll(
       'button, [role="button"], [class*="speed" i], [class*="rate" i], [class*="control" i], [class*="player" i]'
     );
@@ -389,7 +414,11 @@
       const t = el.textContent.trim();
       if (t.length > 10 || !/^\d+(?:\.\d+)?\s*[x×]$/i.test(t)) return;
 
-      const node = walkTextNodes(el, n => /\d/.test(n.textContent));
+      let node = el._spdTextNode;
+      if (node === undefined) {
+        node = walkTextNodes(el, n => /\d/.test(n.textContent));
+        el._spdTextNode = node;
+      }
       if (node) {
         const oldText = node.textContent;
         const newText = oldText.replace(/\d+(?:\.\d+)?/, rate);
