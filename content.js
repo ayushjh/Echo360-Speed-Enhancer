@@ -14,6 +14,7 @@
   const CONTAINER_ATTR = 'data-spd-enhanced';
   const BUTTON_ATTR    = 'data-spd-rate';
   const MSG_TYPE       = 'echo360-speed-enhancer-set-rate';
+  const ARIA_ATTRIBUTES = ['aria-pressed', 'aria-selected', 'aria-checked'];
 
   /**
    * The rate we want enforced. Set when a custom or native button is
@@ -242,7 +243,7 @@
     Array.from(btn.classList)
       .filter(c => /\bactive\b|\bselected\b|\bcurrent\b|\bhighlight/i.test(c))
       .forEach(c => btn.classList.remove(c));
-    ['aria-pressed', 'aria-selected', 'aria-checked'].forEach(attr => {
+    ARIA_ATTRIBUTES.forEach(attr => {
       if (btn.hasAttribute(attr)) btn.setAttribute(attr, 'false');
     });
 
@@ -338,7 +339,7 @@
       el.setAttribute('data-spd-active', isActive ? 'true' : 'false');
 
       // Update ARIA attributes
-      ['aria-pressed', 'aria-selected', 'aria-checked'].forEach(attr => {
+      ARIA_ATTRIBUTES.forEach(attr => {
         if (el.hasAttribute(attr)) {
           el.setAttribute(attr, isActive ? 'true' : 'false');
         }
