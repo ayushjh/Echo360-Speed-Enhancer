@@ -112,8 +112,41 @@
     }
   }
 
+  /**
+   * Validate that the incoming message's origin is trusted.
+   * Trusted origins are same-origin or echo360 domains.
+   */
+  function isAllowedOrigin(origin) {
+    if (!origin) return false;
+
+    if (origin === window.location.origin) {
+      return true;
+    }
+
+    try {
+      const url = new URL(origin);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return false;
+      }
+
+      const hostname = url.hostname.toLowerCase();
+      const allowedDomains = ['echo360.com', 'echo360.org.au', 'echo360.net.au'];
+
+      for (const domain of allowedDomains) {
+        if (hostname === domain || hostname.endsWith('.' + domain)) {
+          return true;
+        }
+      }
+    } catch (_) {
+      return false;
+    }
+
+    return false;
+  }
+
   /* Listen for rate broadcasts from other frames. */
   window.addEventListener('message', e => {
+    if (!isAllowedOrigin(e.origin)) return;
     if (e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
       applyRate(e.data.rate, /* broadcast */ false);
     }
