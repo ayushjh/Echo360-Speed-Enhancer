@@ -6,14 +6,14 @@
  * monkeypatch successfully intercepts all speed resets by Echo360 React code.
  */
 (function () {
-  'use strict';
+  "use strict";
 
   /* ── Config ──────────────────────────────────────────────────────── */
 
-  const EXTRA_SPEEDS   = [2.5, 3, 3.5, 4];
-  const CONTAINER_ATTR = 'data-spd-enhanced';
-  const BUTTON_ATTR    = 'data-spd-rate';
-  const MSG_TYPE       = 'echo360-speed-enhancer-set-rate';
+  const EXTRA_SPEEDS = [2.5, 3, 3.5, 4];
+  const CONTAINER_ATTR = "data-spd-enhanced";
+  const BUTTON_ATTR = "data-spd-rate";
+  const MSG_TYPE = "echo360-speed-enhancer-set-rate";
 
   /**
    * The rate we want enforced. Set when a custom or native button is
@@ -39,7 +39,8 @@
   /* ── playbackRate prototype patch ───────────────────────────────── */
 
   const nativePBR = Object.getOwnPropertyDescriptor(
-    HTMLMediaElement.prototype, 'playbackRate'
+    HTMLMediaElement.prototype,
+    "playbackRate",
   );
 
   /**
@@ -50,12 +51,12 @@
     if (!nativePBR || HTMLMediaElement.prototype._spdPatched) return;
     HTMLMediaElement.prototype._spdPatched = true;
 
-    Object.defineProperty(HTMLMediaElement.prototype, 'playbackRate', {
+    Object.defineProperty(HTMLMediaElement.prototype, "playbackRate", {
       get() {
         return nativePBR.get.call(this);
       },
       set(val) {
-        const target = (enforcedRate !== null) ? enforcedRate : val;
+        const target = enforcedRate !== null ? enforcedRate : val;
         const current = nativePBR.get.call(this);
         // Skip no-op writes to avoid infinite loops
         if (Math.abs(current - target) >= 0.01) {
@@ -66,18 +67,18 @@
       enumerable: true,
     });
 
-    console.debug('[Speed+] playbackRate prototype patched in this frame');
+    console.debug("[Speed+] playbackRate prototype patched in this frame");
   }
 
   /* ── Video helpers ──────────────────────────────────────────────── */
 
   /** Collect all <video> elements in this frame and same-origin iframes. */
   function getAllVideos() {
-    const videos = [...document.querySelectorAll('video')];
-    document.querySelectorAll('iframe').forEach(iframe => {
+    const videos = [...document.querySelectorAll("video")];
+    document.querySelectorAll("iframe").forEach((iframe) => {
       try {
         const doc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (doc) videos.push(...doc.querySelectorAll('video'));
+        if (doc) videos.push(...doc.querySelectorAll("video"));
       } catch (_) {}
     });
     return videos;
@@ -87,7 +88,7 @@
   function applyRate(rate, broadcast = true) {
     enforcedRate = rate;
 
-    getAllVideos().forEach(v => {
+    getAllVideos().forEach((v) => {
       if (nativePBR) {
         nativePBR.set.call(v, rate);
       } else {
@@ -104,52 +105,66 @@
   /** Post rate to every reachable frame. */
   function broadcastRate(rate) {
     const msg = { type: MSG_TYPE, rate };
-    document.querySelectorAll('iframe').forEach(iframe => {
-      try { iframe.contentWindow.postMessage(msg, '*'); } catch (_) {}
+    document.querySelectorAll("iframe").forEach((iframe) => {
+      try {
+        iframe.contentWindow.postMessage(msg, "*");
+      } catch (_) {}
     });
     if (window !== window.top) {
-      try { window.parent.postMessage(msg, '*'); } catch (_) {}
+      try {
+        window.parent.postMessage(msg, "*");
+      } catch (_) {}
     }
   }
 
   /* Listen for rate broadcasts from other frames. */
-  window.addEventListener('message', e => {
-    if (e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
+  window.addEventListener("message", (e) => {
+    if (e.data?.type === MSG_TYPE && typeof e.data.rate === "number") {
       applyRate(e.data.rate, /* broadcast */ false);
     }
   });
 
   /* Enforce speed on any external ratechange events (capture phase). */
-  document.addEventListener('ratechange', e => {
-    if (enforcedRate === null) return;
-    const video = e.target;
-    if (video instanceof HTMLMediaElement) {
-      const cur = nativePBR ? nativePBR.get.call(video) : video.playbackRate;
-      if (Math.abs(cur - enforcedRate) >= 0.01) {
-        console.debug('[Speed+] Enforcing rate on ratechange event:', enforcedRate);
-        if (nativePBR) {
-          nativePBR.set.call(video, enforcedRate);
-        } else {
-          video.playbackRate = enforcedRate;
+  document.addEventListener(
+    "ratechange",
+    (e) => {
+      if (enforcedRate === null) return;
+      const video = e.target;
+      if (video instanceof HTMLMediaElement) {
+        const cur = nativePBR ? nativePBR.get.call(video) : video.playbackRate;
+        if (Math.abs(cur - enforcedRate) >= 0.01) {
+          console.debug(
+            "[Speed+] Enforcing rate on ratechange event:",
+            enforcedRate,
+          );
+          if (nativePBR) {
+            nativePBR.set.call(video, enforcedRate);
+          } else {
+            video.playbackRate = enforcedRate;
+          }
         }
       }
-    }
-  }, true);
+    },
+    true,
+  );
 
   /* ── DOM helpers ────────────────────────────────────────────────── */
 
   function walkTextNodes(el, test) {
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-    for (let n; (n = walker.nextNode()); ) { if (test(n)) return n; }
+    for (let n; (n = walker.nextNode()); ) {
+      if (test(n)) return n;
+    }
     return null;
   }
 
   function gatherActiveClasses(container) {
     const found = new Set();
-    container.querySelectorAll('[class]').forEach(el =>
-      el.classList.forEach(c => {
-        if (/\bactive\b|\bselected\b|\bcurrent\b|\bhighlight/i.test(c)) found.add(c);
-      })
+    container.querySelectorAll("[class]").forEach((el) =>
+      el.classList.forEach((c) => {
+        if (/\bactive\b|\bselected\b|\bcurrent\b|\bhighlight/i.test(c))
+          found.add(c);
+      }),
     );
     return [...found];
   }
@@ -157,9 +172,9 @@
   /* ── CSS Injection ──────────────────────────────────────────────── */
 
   function injectStyles() {
-    if (document.getElementById('spd-enhancer-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'spd-enhancer-styles';
+    if (document.getElementById("spd-enhancer-styles")) return;
+    const style = document.createElement("style");
+    style.id = "spd-enhancer-styles";
     style.textContent = [
       /* Hide checkmark/icon sub-elements inside custom buttons by default */
       `[${BUTTON_ATTR}] svg,`,
@@ -193,28 +208,67 @@
       `.spd-native-inactive *::after {`,
       `  content: none !important;`,
       `  display: none !important;`,
-      `}`
-    ].join('\n');
+      `}`,
+    ].join("\n");
     (document.head || document.documentElement).appendChild(style);
   }
 
   /* ── Finding the speed panel container ──────────────────────────── */
 
+  let cachedContainer = null;
+  let lastSearchTime = 0;
+  const NEGATIVE_CACHE_TTL = 2000; // 2 seconds
+
+  // Clear negative cache on user interaction to ensure instant responsiveness
+  function clearNegativeCache() {
+    lastSearchTime = 0;
+  }
+  document.addEventListener("click", clearNegativeCache, true);
+  document.addEventListener("keydown", clearNegativeCache, true);
+  document.addEventListener("focusin", clearNegativeCache, true);
+
   function findSpeedContainer() {
+    // 1. O(1) Fast path: check if we already have a cached container that is still connected
+    if (
+      cachedContainer &&
+      (cachedContainer.isConnected || document.body.contains(cachedContainer))
+    ) {
+      return cachedContainer;
+    }
+
+    // 2. Negative cache: if we recently searched and found nothing, don't search again immediately
+    const now = Date.now();
+    if (now - lastSearchTime < NEGATIVE_CACHE_TTL) {
+      return null;
+    }
+    lastSearchTime = now;
+
+    // 3. Search the DOM
     const candidates = document.querySelectorAll(
-      'button, li, div, span, a, [role="option"], [role="menuitem"], [role="radio"]'
+      'button, li, div, span, a, [role="option"], [role="menuitem"], [role="radio"]',
     );
 
     const counts = new Map();
-    candidates.forEach(el => {
+    candidates.forEach((el) => {
+      // Performance optimization: skip elements with too many children,
+      // as they cannot be individual speed buttons/options.
+      if (el.children && el.children.length > 3) return;
       if (!looksLikeSpeed(el)) return;
       const p = el.parentElement;
       if (!p || p === document.body || p === document.documentElement) return;
       counts.set(p, (counts.get(p) ?? 0) + 1);
     });
 
-    let best = null, bestN = 2;
-    counts.forEach((n, p) => { if (n > bestN) { bestN = n; best = p; } });
+    let best = null,
+      bestN = 2;
+    counts.forEach((n, p) => {
+      if (n > bestN) {
+        bestN = n;
+        best = p;
+      }
+    });
+
+    cachedContainer = best;
     return best;
   }
 
@@ -227,11 +281,11 @@
     const cw = document.createTreeWalker(btn, NodeFilter.SHOW_TEXT);
     let tn;
     while ((tn = cw.nextNode())) {
-      tn.textContent = tn.textContent.replace(/[✓✔☑✅✕✗✘⬤●]\s*/gu, '');
+      tn.textContent = tn.textContent.replace(/[✓✔☑✅✕✗✘⬤●]\s*/gu, "");
     }
 
     // Update speed label text
-    const node = walkTextNodes(btn, n => /\d/.test(n.textContent));
+    const node = walkTextNodes(btn, (n) => /\d/.test(n.textContent));
     if (node) {
       node.textContent = node.textContent.replace(/\d+(?:\.\d+)?/, rate);
     } else {
@@ -240,25 +294,27 @@
 
     // Clean active/selected states initially
     Array.from(btn.classList)
-      .filter(c => /\bactive\b|\bselected\b|\bcurrent\b|\bhighlight/i.test(c))
-      .forEach(c => btn.classList.remove(c));
-    ['aria-pressed', 'aria-selected', 'aria-checked'].forEach(attr => {
-      if (btn.hasAttribute(attr)) btn.setAttribute(attr, 'false');
+      .filter((c) => /\bactive\b|\bselected\b|\bcurrent\b|\bhighlight/i.test(c))
+      .forEach((c) => btn.classList.remove(c));
+    ["aria-pressed", "aria-selected", "aria-checked"].forEach((attr) => {
+      if (btn.hasAttribute(attr)) btn.setAttribute(attr, "false");
     });
 
     // Update rate-related attributes
-    ['data-rate', 'data-speed', 'data-value', 'data-playback-rate'].forEach(attr => {
-      if (btn.hasAttribute(attr)) btn.setAttribute(attr, rate);
-    });
+    ["data-rate", "data-speed", "data-value", "data-playback-rate"].forEach(
+      (attr) => {
+        if (btn.hasAttribute(attr)) btn.setAttribute(attr, rate);
+      },
+    );
 
-    const al = btn.getAttribute('aria-label');
-    if (al) btn.setAttribute('aria-label', `${rate}× playback speed`);
+    const al = btn.getAttribute("aria-label");
+    if (al) btn.setAttribute("aria-label", `${rate}× playback speed`);
 
     btn.removeAttribute(CONTAINER_ATTR);
     btn.setAttribute(BUTTON_ATTR, String(rate));
-    btn.setAttribute('data-spd-active', 'false');
+    btn.setAttribute("data-spd-active", "false");
 
-    btn.addEventListener('click', () => {
+    btn.addEventListener("click", () => {
       applyRate(rate);
     });
 
@@ -275,47 +331,57 @@
     const speedItems = Array.from(container.children).filter(looksLikeSpeed);
     if (speedItems.length < 3) return false;
 
-    container.setAttribute(CONTAINER_ATTR, '');
+    container.setAttribute(CONTAINER_ATTR, "");
     injectStyles();
 
     const firstRate = parseRate(speedItems[0]);
-    const lastRate  = parseRate(speedItems[speedItems.length - 1]);
-    const descending = firstRate !== null && lastRate !== null && firstRate > lastRate;
+    const lastRate = parseRate(speedItems[speedItems.length - 1]);
+    const descending =
+      firstRate !== null && lastRate !== null && firstRate > lastRate;
 
-    const template = descending ? speedItems[0] : speedItems[speedItems.length - 1];
+    const template = descending
+      ? speedItems[0]
+      : speedItems[speedItems.length - 1];
 
     if (descending) {
       const refNode = speedItems[0];
-      [...EXTRA_SPEEDS].reverse().forEach(rate => {
+      [...EXTRA_SPEEDS].reverse().forEach((rate) => {
         if (container.querySelector(`[${BUTTON_ATTR}="${rate}"]`)) return;
         container.insertBefore(buildButton(template, rate), refNode);
       });
     } else {
-      EXTRA_SPEEDS.forEach(rate => {
+      EXTRA_SPEEDS.forEach((rate) => {
         if (container.querySelector(`[${BUTTON_ATTR}="${rate}"]`)) return;
         container.appendChild(buildButton(template, rate));
       });
     }
 
     // Hook native speed buttons so they update enforcedRate
-    Array.from(container.children).forEach(item => {
+    Array.from(container.children).forEach((item) => {
       if (item.hasAttribute(BUTTON_ATTR)) return;
       if (!looksLikeSpeed(item)) return;
-      if (item.hasAttribute('data-spd-hooked')) return;
-      item.setAttribute('data-spd-hooked', 'true');
+      if (item.hasAttribute("data-spd-hooked")) return;
+      item.setAttribute("data-spd-hooked", "true");
 
-      item.addEventListener('click', () => {
-        const r = parseRate(item);
-        if (r !== null) {
-          enforcedRate = r;
-          console.debug('[Speed+] Native speed selected:', r + '×');
-          syncUI(r);
-        }
-      }, true); // capture phase
+      item.addEventListener(
+        "click",
+        () => {
+          const r = parseRate(item);
+          if (r !== null) {
+            enforcedRate = r;
+            console.debug("[Speed+] Native speed selected:", r + "×");
+            syncUI(r);
+          }
+        },
+        true,
+      ); // capture phase
     });
 
-    console.info('[Speed+] ✓ Injected', EXTRA_SPEEDS.map(r => r + '×').join(', '),
-      `(${descending ? 'descending' : 'ascending'} panel)`);
+    console.info(
+      "[Speed+] ✓ Injected",
+      EXTRA_SPEEDS.map((r) => r + "×").join(", "),
+      `(${descending ? "descending" : "ascending"} panel)`,
+    );
     return true;
   }
 
@@ -328,45 +394,50 @@
 
     const activeClasses = gatherActiveClasses(container);
 
-    Array.from(container.children).forEach(el => {
+    Array.from(container.children).forEach((el) => {
       if (!looksLikeSpeed(el)) return;
 
       const elRate = parseRate(el);
       const isActive = elRate !== null && Math.abs(elRate - rate) < 0.01;
 
       // Update custom status attribute
-      el.setAttribute('data-spd-active', isActive ? 'true' : 'false');
+      el.setAttribute("data-spd-active", isActive ? "true" : "false");
 
       // Update ARIA attributes
-      ['aria-pressed', 'aria-selected', 'aria-checked'].forEach(attr => {
+      ["aria-pressed", "aria-selected", "aria-checked"].forEach((attr) => {
         if (el.hasAttribute(attr)) {
-          el.setAttribute(attr, isActive ? 'true' : 'false');
+          el.setAttribute(attr, isActive ? "true" : "false");
         }
       });
 
       // Update active styling classes
       if (isActive) {
         if (activeClasses.length) {
-          activeClasses.forEach(c => el.classList.add(c));
+          activeClasses.forEach((c) => el.classList.add(c));
         } else {
-          el.classList.add('active');
+          el.classList.add("active");
         }
-        el.classList.remove('spd-native-inactive');
+        el.classList.remove("spd-native-inactive");
       } else {
-        activeClasses.forEach(c => el.classList.remove(c));
+        activeClasses.forEach((c) => el.classList.remove(c));
         if (!el.hasAttribute(BUTTON_ATTR)) {
-          el.classList.add('spd-native-inactive');
+          el.classList.add("spd-native-inactive");
         }
       }
 
       // Sync unicode checkmarks in text content
-      const textNode = walkTextNodes(el, n => /\d/.test(n.textContent));
+      const textNode = walkTextNodes(el, (n) => /\d/.test(n.textContent));
       if (textNode) {
         const hasCheck = /[✓✔☑✅]/.test(textNode.textContent);
         if (isActive && !hasCheck) {
-          textNode.textContent = '✓ ' + textNode.textContent.trim().replace(/^[✓✔☑✅✕✗✘⬤●]\s*/gu, '');
+          textNode.textContent =
+            "✓ " +
+            textNode.textContent.trim().replace(/^[✓✔☑✅✕✗✘⬤●]\s*/gu, "");
         } else if (!isActive && hasCheck) {
-          textNode.textContent = textNode.textContent.replace(/^[✓✔☑✅✕✗✘⬤●]\s*/gu, '');
+          textNode.textContent = textNode.textContent.replace(
+            /^[✓✔☑✅✕✗✘⬤●]\s*/gu,
+            "",
+          );
         }
       }
     });
@@ -377,25 +448,55 @@
 
   /* ── Update the label on the control-bar toggle button ──────────── */
 
+  let cachedToggleNodes = [];
+
   function updateToggleLabel(rate) {
+    // Filter out disconnected nodes
+    cachedToggleNodes = cachedToggleNodes.filter(
+      (node) => node.isConnected || document.body.contains(node),
+    );
+
+    if (cachedToggleNodes.length > 0) {
+      cachedToggleNodes.forEach((node) => {
+        const oldText = node.textContent;
+        const newText = oldText.replace(/\d+(?:\.\d+)?/, rate);
+        if (oldText !== newText) {
+          node.textContent = newText;
+          console.debug(
+            "[Speed+] Updated cached toggle label from:",
+            oldText,
+            "to:",
+            newText,
+          );
+        }
+      });
+      return;
+    }
+
     const container = document.querySelector(`[${CONTAINER_ATTR}]`);
     const candidates = document.querySelectorAll(
-      'button, [role="button"], [class*="speed" i], [class*="rate" i], [class*="control" i], [class*="player" i]'
+      'button, [role="button"], [class*="speed" i], [class*="rate" i], [class*="control" i], [class*="player" i]',
     );
-    candidates.forEach(el => {
+    candidates.forEach((el) => {
       if (container?.contains(el)) return;
       if (el.hasAttribute(BUTTON_ATTR)) return;
 
       const t = el.textContent.trim();
       if (t.length > 10 || !/^\d+(?:\.\d+)?\s*[x×]$/i.test(t)) return;
 
-      const node = walkTextNodes(el, n => /\d/.test(n.textContent));
+      const node = walkTextNodes(el, (n) => /\d/.test(n.textContent));
       if (node) {
+        cachedToggleNodes.push(node);
         const oldText = node.textContent;
         const newText = oldText.replace(/\d+(?:\.\d+)?/, rate);
         if (oldText !== newText) {
           node.textContent = newText;
-          console.debug('[Speed+] Updated toggle label from:', oldText, 'to:', newText);
+          console.debug(
+            "[Speed+] Updated toggle label from:",
+            oldText,
+            "to:",
+            newText,
+          );
         }
       }
     });
@@ -419,18 +520,20 @@
   function boot() {
     patchPlaybackRate();
     inject();
-    [600, 1500, 3000, 6000].forEach(ms => setTimeout(handleMutations, ms));
+    [600, 1500, 3000, 6000].forEach((ms) => setTimeout(handleMutations, ms));
 
-    new MutationObserver(scheduleMutationHandling).observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-    });
+    new MutationObserver(scheduleMutationHandling).observe(
+      document.documentElement,
+      {
+        childList: true,
+        subtree: true,
+      },
+    );
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
   } else {
     boot();
   }
-
 })();
