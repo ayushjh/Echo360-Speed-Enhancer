@@ -133,6 +133,7 @@
           video.playbackRate = enforcedRate;
         }
       }
+      syncUI(enforcedRate);
     }
   }, true);
 
@@ -270,7 +271,15 @@
   function inject() {
     const container = findSpeedContainer();
     if (!container) return false;
-    if (container.hasAttribute(CONTAINER_ATTR)) return true;
+
+    // Verify all custom buttons are present
+    const hasAllCustomButtons = EXTRA_SPEEDS.every(rate =>
+      container.querySelector(`[${BUTTON_ATTR}="${rate}"]`)
+    );
+    if (container.hasAttribute(CONTAINER_ATTR) && hasAllCustomButtons) return true;
+
+    // Clean up any existing custom buttons to prevent duplicates/stale elements and ensure clean template selection
+    container.querySelectorAll(`[${BUTTON_ATTR}]`).forEach(el => el.remove());
 
     const speedItems = Array.from(container.children).filter(looksLikeSpeed);
     if (speedItems.length < 3) return false;
@@ -334,39 +343,56 @@
       const elRate = parseRate(el);
       const isActive = elRate !== null && Math.abs(elRate - rate) < 0.01;
 
-      // Update custom status attribute
-      el.setAttribute('data-spd-active', isActive ? 'true' : 'false');
+      // Update custom status attribute idempotently
+      const expectedActive = isActive ? 'true' : 'false';
+      if (el.getAttribute('data-spd-active') !== expectedActive) {
+        el.setAttribute('data-spd-active', expectedActive);
+      }
 
-      // Update ARIA attributes
+      // Update ARIA attributes idempotently
       ['aria-pressed', 'aria-selected', 'aria-checked'].forEach(attr => {
         if (el.hasAttribute(attr)) {
-          el.setAttribute(attr, isActive ? 'true' : 'false');
+          if (el.getAttribute(attr) !== expectedActive) {
+            el.setAttribute(attr, expectedActive);
+          }
         }
       });
 
-      // Update active styling classes
+      // Update active styling classes idempotently
       if (isActive) {
-        if (activeClasses.length) {
-          activeClasses.forEach(c => el.classList.add(c));
-        } else {
-          el.classList.add('active');
+        const classesToAdd = activeClasses.length ? activeClasses : ['active'];
+        classesToAdd.forEach(c => {
+          if (!el.classList.contains(c)) el.classList.add(c);
+        });
+        if (el.classList.contains('spd-native-inactive')) {
+          el.classList.remove('spd-native-inactive');
         }
-        el.classList.remove('spd-native-inactive');
       } else {
-        activeClasses.forEach(c => el.classList.remove(c));
+        activeClasses.forEach(c => {
+          if (el.classList.contains(c)) el.classList.remove(c);
+        });
         if (!el.hasAttribute(BUTTON_ATTR)) {
-          el.classList.add('spd-native-inactive');
+          if (!el.classList.contains('spd-native-inactive')) {
+            el.classList.add('spd-native-inactive');
+          }
         }
       }
 
-      // Sync unicode checkmarks in text content
+      // Sync unicode checkmarks in text content idempotently
       const textNode = walkTextNodes(el, n => /\d/.test(n.textContent));
       if (textNode) {
         const hasCheck = /[✓✔☑✅]/.test(textNode.textContent);
         if (isActive && !hasCheck) {
-          textNode.textContent = '✓ ' + textNode.textContent.trim().replace(/^[✓✔☑✅✕✗✘⬤●]\s*/gu, '');
+          const cleanText = textNode.textContent.trim().replace(/^[✓✔☑✅✕✗✘⬤●]\s*/gu, '');
+          const newText = '✓ ' + cleanText;
+          if (textNode.textContent !== newText) {
+            textNode.textContent = newText;
+          }
         } else if (!isActive && hasCheck) {
-          textNode.textContent = textNode.textContent.replace(/^[✓✔☑✅✕✗✘⬤●]\s*/gu, '');
+          const newText = textNode.textContent.replace(/^[✓✔☑✅✕✗✘⬤●]\s*/gu, '');
+          if (textNode.textContent !== newText) {
+            textNode.textContent = newText;
+          }
         }
       }
     });
@@ -404,6 +430,9 @@
   /* ── Watcher & Boot ─────────────────────────────────────────────── */
 
   let debounce = null;
+  let lastExec = 0;
+  const DELAY = 50;
+
   function handleMutations() {
     inject();
     if (enforcedRate !== null) {
@@ -412,8 +441,23 @@
   }
 
   function scheduleMutationHandling() {
-    clearTimeout(debounce);
-    debounce = setTimeout(handleMutations, 50);
+    const now = Date.now();
+    if (debounce) {
+      clearTimeout(debounce);
+      debounce = null;
+    }
+
+    const timeSinceLast = now - lastExec;
+    if (timeSinceLast >= DELAY) {
+      lastExec = now;
+      handleMutations();
+    } else {
+      const remaining = DELAY - timeSinceLast;
+      debounce = setTimeout(() => {
+        lastExec = Date.now();
+        handleMutations();
+      }, remaining);
+    }
   }
 
   function boot() {
@@ -424,6 +468,14 @@
     new MutationObserver(scheduleMutationHandling).observe(document.documentElement, {
       childList: true,
       subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'aria-selected', 'aria-checked', 'aria-pressed'],
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        handleMutations();
+      }
     });
   }
 
