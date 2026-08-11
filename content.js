@@ -14,6 +14,7 @@
   const CONTAINER_ATTR = 'data-spd-enhanced';
   const BUTTON_ATTR    = 'data-spd-rate';
   const MSG_TYPE       = 'echo360-speed-enhancer-set-rate';
+  const RATE_TOLERANCE = 0.01;
 
   /**
    * The rate we want enforced. Set when a custom or native button is
@@ -58,7 +59,7 @@
         const target = (enforcedRate !== null) ? enforcedRate : val;
         const current = nativePBR.get.call(this);
         // Skip no-op writes to avoid infinite loops
-        if (Math.abs(current - target) >= 0.01) {
+        if (Math.abs(current - target) >= RATE_TOLERANCE) {
           nativePBR.set.call(this, target);
         }
       },
@@ -125,7 +126,7 @@
     const video = e.target;
     if (video instanceof HTMLMediaElement) {
       const cur = nativePBR ? nativePBR.get.call(video) : video.playbackRate;
-      if (Math.abs(cur - enforcedRate) >= 0.01) {
+      if (Math.abs(cur - enforcedRate) >= RATE_TOLERANCE) {
         console.debug('[Speed+] Enforcing rate on ratechange event:', enforcedRate);
         if (nativePBR) {
           nativePBR.set.call(video, enforcedRate);
@@ -332,7 +333,7 @@
       if (!looksLikeSpeed(el)) return;
 
       const elRate = parseRate(el);
-      const isActive = elRate !== null && Math.abs(elRate - rate) < 0.01;
+      const isActive = elRate !== null && Math.abs(elRate - rate) < RATE_TOLERANCE;
 
       // Update custom status attribute
       el.setAttribute('data-spd-active', isActive ? 'true' : 'false');
