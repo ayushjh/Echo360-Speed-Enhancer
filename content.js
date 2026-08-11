@@ -101,20 +101,83 @@
     syncUI(rate);
   }
 
+  /**
+   * Check if a given origin string is trusted (either same-origin or a known Echo360 domain/subdomain).
+   */
+  function isTrustedOrigin(originStr) {
+    if (!originStr || originStr === 'null') return false;
+    if (originStr === window.location.origin) return true;
+
+    try {
+      const url = new URL(originStr);
+      const hostname = url.hostname;
+      return /^(?:.*\.)?echo360\.(?:com|net\.au|org\.au)$/i.test(hostname);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /** Get a trusted target origin for window.parent if possible. */
+  function getTrustedParentOrigin() {
+    try {
+      if (window.parent && window.parent.location) {
+        const org = window.parent.location.origin;
+        if (isTrustedOrigin(org)) return org;
+      }
+    } catch (_) {}
+
+    if (document.referrer) {
+      try {
+        const org = new URL(document.referrer).origin;
+        if (isTrustedOrigin(org)) return org;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /** Get a trusted target origin for a given iframe if possible. */
+  function getTrustedIframeOrigin(iframe) {
+    try {
+      if (iframe.contentWindow && iframe.contentWindow.location) {
+        const org = iframe.contentWindow.location.origin;
+        if (isTrustedOrigin(org)) return org;
+      }
+    } catch (_) {}
+
+    const src = iframe.getAttribute('src');
+    if (src) {
+      try {
+        const org = new URL(src, window.location.href).origin;
+        if (isTrustedOrigin(org)) return org;
+      } catch (_) {}
+    }
+    return null;
+  }
+
   /** Post rate to every reachable frame. */
   function broadcastRate(rate) {
     const msg = { type: MSG_TYPE, rate };
     document.querySelectorAll('iframe').forEach(iframe => {
-      try { iframe.contentWindow.postMessage(msg, '*'); } catch (_) {}
+      try {
+        const targetOrigin = getTrustedIframeOrigin(iframe);
+        if (targetOrigin) {
+          iframe.contentWindow.postMessage(msg, targetOrigin);
+        }
+      } catch (_) {}
     });
     if (window !== window.top) {
-      try { window.parent.postMessage(msg, '*'); } catch (_) {}
+      try {
+        const targetOrigin = getTrustedParentOrigin();
+        if (targetOrigin) {
+          window.parent.postMessage(msg, targetOrigin);
+        }
+      } catch (_) {}
     }
   }
 
   /* Listen for rate broadcasts from other frames. */
   window.addEventListener('message', e => {
-    if (e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
+    if (isTrustedOrigin(e.origin) && e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
       applyRate(e.data.rate, /* broadcast */ false);
     }
   });
