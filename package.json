@@ -1,0 +1,28 @@
+{
+  "name": "echo360-speed-enhancer",
+  "version": "1.0.0",
+  "description": "A lightweight, permission-less browser extension that adds **2.5×, 3×, 3.5×, and 4×** playback speed options directly into Echo360's video player controls.",
+  "main": "content.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ayushjh/Echo360-Speed-Enhancer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ayushjh/Echo360-Speed-Enhancer/issues"
+  },
+  "homepage": "https://github.com/ayushjh/Echo360-Speed-Enhancer#readme",
+  "devDependencies": {
+    "jest": "^30.1.3",
+    "jest-environment-jsdom": "^30.1.3"
+  }
+}
