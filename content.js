@@ -419,7 +419,11 @@
   function boot() {
     patchPlaybackRate();
     inject();
-    [600, 1500, 3000, 6000].forEach(ms => setTimeout(handleMutations, ms));
+
+    // Only schedule timers when we are in a real browser context
+    if (typeof module === 'undefined') {
+      [600, 1500, 3000, 6000].forEach(ms => setTimeout(handleMutations, ms));
+    }
 
     new MutationObserver(scheduleMutationHandling).observe(document.documentElement, {
       childList: true,
@@ -431,6 +435,11 @@
     document.addEventListener('DOMContentLoaded', boot);
   } else {
     boot();
+  }
+
+  // Export for testing
+  if (typeof module !== 'undefined') {
+    module.exports = { looksLikeSpeed, parseRate };
   }
 
 })();
