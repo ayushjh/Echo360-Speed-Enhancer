@@ -14,6 +14,7 @@
   const CONTAINER_ATTR = 'data-spd-enhanced';
   const BUTTON_ATTR    = 'data-spd-rate';
   const MSG_TYPE       = 'echo360-speed-enhancer-set-rate';
+  const RATE_REGEX     = /\d+(?:\.\d+)?/;
 
   /**
    * The rate we want enforced. Set when a custom or native button is
@@ -233,7 +234,7 @@
     // Update speed label text
     const node = walkTextNodes(btn, n => /\d/.test(n.textContent));
     if (node) {
-      node.textContent = node.textContent.replace(/\d+(?:\.\d+)?/, rate);
+      node.textContent = node.textContent.replace(RATE_REGEX, rate);
     } else {
       btn.textContent = `${rate}×`;
     }
@@ -392,7 +393,7 @@
       const node = walkTextNodes(el, n => /\d/.test(n.textContent));
       if (node) {
         const oldText = node.textContent;
-        const newText = oldText.replace(/\d+(?:\.\d+)?/, rate);
+        const newText = oldText.replace(RATE_REGEX, rate);
         if (oldText !== newText) {
           node.textContent = newText;
           console.debug('[Speed+] Updated toggle label from:', oldText, 'to:', newText);
