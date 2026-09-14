@@ -1,0 +1,16 @@
+{
+  "name": "echo360-speed-enhancer",
+  "version": "1.1.0",
+  "description": "Adds 2.5×, 3×, 3.5×, and 4× playback speed options to the Echo360 player.",
+  "main": "content.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "jest-environment-jsdom": "^29.0.0"
+  }
+}
