@@ -427,10 +427,20 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
-    boot();
+  // Only auto-boot in browser environments
+  if (typeof window !== 'undefined' && typeof document !== 'undefined' && typeof window.addEventListener === 'function') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
   }
 
+  // Export functions for testing
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+      broadcastRate,
+      MSG_TYPE
+    };
+  }
 })();
