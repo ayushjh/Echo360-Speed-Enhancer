@@ -78,7 +78,9 @@
       try {
         const doc = iframe.contentDocument || iframe.contentWindow?.document;
         if (doc) videos.push(...doc.querySelectorAll('video'));
-      } catch (_) {}
+      } catch (err) {
+        console.warn('[Speed+] Could not access iframe:', err);
+      }
     });
     return videos;
   }
@@ -105,10 +107,10 @@
   function broadcastRate(rate) {
     const msg = { type: MSG_TYPE, rate };
     document.querySelectorAll('iframe').forEach(iframe => {
-      try { iframe.contentWindow.postMessage(msg, '*'); } catch (_) {}
+      try { iframe.contentWindow.postMessage(msg, '*'); } catch (err) { console.warn('[Speed+] Failed to broadcast rate:', err); }
     });
     if (window !== window.top) {
-      try { window.parent.postMessage(msg, '*'); } catch (_) {}
+      try { window.parent.postMessage(msg, '*'); } catch (err) { console.warn('[Speed+] Failed to broadcast rate:', err); }
     }
   }
 
