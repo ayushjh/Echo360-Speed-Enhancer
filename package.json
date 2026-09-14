@@ -1,0 +1,25 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "A lightweight, permission-less browser extension that adds **2.5×, 3×, 3.5×, and 4×** playback speed options directly into Echo360's video player controls. Works seamlessly on Firefox, Zen, Chrome, Brave, Edge, Opera and other Chromium-based browsers.",
+  "main": "content.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ayushjh/Echo360-Speed-Enhancer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ayushjh/Echo360-Speed-Enhancer/issues"
+  },
+  "homepage": "https://github.com/ayushjh/Echo360-Speed-Enhancer#readme",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}

@@ -38,16 +38,16 @@
 
   /* ── playbackRate prototype patch ───────────────────────────────── */
 
-  const nativePBR = Object.getOwnPropertyDescriptor(
+  const nativePBR = typeof HTMLMediaElement !== 'undefined' ? Object.getOwnPropertyDescriptor(
     HTMLMediaElement.prototype, 'playbackRate'
-  );
+  ) : null;
 
   /**
    * Monkey-patch HTMLMediaElement.prototype.playbackRate.
    * Redirects all writes to enforcedRate when non-null.
    */
   function patchPlaybackRate() {
-    if (!nativePBR || HTMLMediaElement.prototype._spdPatched) return;
+    if (typeof HTMLMediaElement === 'undefined' || !nativePBR || HTMLMediaElement.prototype._spdPatched) return;
     HTMLMediaElement.prototype._spdPatched = true;
 
     Object.defineProperty(HTMLMediaElement.prototype, 'playbackRate', {
@@ -113,28 +113,32 @@
   }
 
   /* Listen for rate broadcasts from other frames. */
-  window.addEventListener('message', e => {
-    if (e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
-      applyRate(e.data.rate, /* broadcast */ false);
-    }
-  });
+  if (typeof window !== 'undefined') {
+    window.addEventListener('message', e => {
+      if (e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
+        applyRate(e.data.rate, /* broadcast */ false);
+      }
+    });
+  }
 
   /* Enforce speed on any external ratechange events (capture phase). */
-  document.addEventListener('ratechange', e => {
-    if (enforcedRate === null) return;
-    const video = e.target;
-    if (video instanceof HTMLMediaElement) {
-      const cur = nativePBR ? nativePBR.get.call(video) : video.playbackRate;
-      if (Math.abs(cur - enforcedRate) >= 0.01) {
-        console.debug('[Speed+] Enforcing rate on ratechange event:', enforcedRate);
-        if (nativePBR) {
-          nativePBR.set.call(video, enforcedRate);
-        } else {
-          video.playbackRate = enforcedRate;
+  if (typeof document !== 'undefined') {
+    document.addEventListener('ratechange', e => {
+      if (enforcedRate === null) return;
+      const video = e.target;
+      if (typeof HTMLMediaElement !== 'undefined' && video instanceof HTMLMediaElement) {
+        const cur = nativePBR ? nativePBR.get.call(video) : video.playbackRate;
+        if (Math.abs(cur - enforcedRate) >= 0.01) {
+          console.debug('[Speed+] Enforcing rate on ratechange event:', enforcedRate);
+          if (nativePBR) {
+            nativePBR.set.call(video, enforcedRate);
+          } else {
+            video.playbackRate = enforcedRate;
+          }
         }
       }
-    }
-  }, true);
+    }, true);
+  }
 
   /* ── DOM helpers ────────────────────────────────────────────────── */
 
@@ -421,16 +425,30 @@
     inject();
     [600, 1500, 3000, 6000].forEach(ms => setTimeout(handleMutations, ms));
 
-    new MutationObserver(scheduleMutationHandling).observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-    });
+    if (typeof document !== 'undefined' && typeof MutationObserver !== 'undefined') {
+      new MutationObserver(scheduleMutationHandling).observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+    }
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
-    boot();
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+  }
+
+  /* ── Test Exports ───────────────────────────────────────────────── */
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+      gatherActiveClasses,
+      walkTextNodes,
+      looksLikeSpeed,
+      parseRate
+    };
   }
 
 })();
