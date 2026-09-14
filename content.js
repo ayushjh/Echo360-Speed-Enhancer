@@ -433,4 +433,12 @@
     boot();
   }
 
+  // Export functions if running in Node environment for testing
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+      looksLikeSpeed,
+      parseRate
+    };
+  }
+
 })();
