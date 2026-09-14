@@ -26,6 +26,7 @@
 
   /** Returns true if el's text content looks like a playback-speed label. */
   function looksLikeSpeed(el) {
+    if (el.textContent.length > 50) return false;
     const t = el.textContent.trim();
     return t.length <= 10 && /\d+(?:\.\d+)?\s*[x×]/i.test(t);
   }
