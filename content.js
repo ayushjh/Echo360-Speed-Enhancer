@@ -267,8 +267,7 @@
 
   /* ── Main injection ─────────────────────────────────────────────── */
 
-  function inject() {
-    const container = findSpeedContainer();
+  function inject(container = findSpeedContainer()) {
     if (!container) return false;
     if (container.hasAttribute(CONTAINER_ATTR)) return true;
 
@@ -321,9 +320,8 @@
 
   /* ── UI Synchronization ─────────────────────────────────────────── */
 
-  function syncUI(rate) {
+  function syncUI(rate, container = findSpeedContainer()) {
     if (rate === null) return;
-    const container = findSpeedContainer();
     if (!container) return;
 
     const activeClasses = gatherActiveClasses(container);
@@ -405,9 +403,10 @@
 
   let debounce = null;
   function handleMutations() {
-    inject();
+    const container = findSpeedContainer();
+    inject(container);
     if (enforcedRate !== null) {
-      syncUI(enforcedRate);
+      syncUI(enforcedRate, container);
     }
   }
 
