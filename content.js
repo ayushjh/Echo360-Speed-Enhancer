@@ -200,7 +200,12 @@
 
   /* ── Finding the speed panel container ──────────────────────────── */
 
+  let cachedSpeedContainer = null;
   function findSpeedContainer() {
+    if (cachedSpeedContainer && document.contains(cachedSpeedContainer)) {
+      return cachedSpeedContainer;
+    }
+
     const candidates = document.querySelectorAll(
       'button, li, div, span, a, [role="option"], [role="menuitem"], [role="radio"]'
     );
@@ -215,6 +220,9 @@
 
     let best = null, bestN = 2;
     counts.forEach((n, p) => { if (n > bestN) { bestN = n; best = p; } });
+    if (best) {
+      cachedSpeedContainer = best;
+    }
     return best;
   }
 
