@@ -69,6 +69,45 @@
     console.debug('[Speed+] playbackRate prototype patched in this frame');
   }
 
+  /* ── Security helpers ───────────────────────────────────────────── */
+
+  function isTrustedOrigin(origin) {
+    if (origin === window.location.origin) return true;
+    try {
+      const hostname = new URL(origin).hostname;
+      return /^(?:[a-z0-9-]+\.)*echo360\.(?:com|org\.au|net\.au)$/.test(hostname);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function getIframeOrigin(iframe) {
+    try {
+      if (iframe.contentDocument) return window.location.origin;
+    } catch (_) {}
+    if (iframe.src) {
+      try {
+        const url = new URL(iframe.src, window.location.href);
+        if (url.origin !== 'null') return url.origin;
+      } catch (_) {}
+    }
+    return window.location.origin;
+  }
+
+  function getTrustedParentOrigin() {
+    try {
+      return window.parent.location.origin;
+    } catch (_) {
+      try {
+        if (document.referrer) {
+          const refOrigin = new URL(document.referrer).origin;
+          if (isTrustedOrigin(refOrigin)) return refOrigin;
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+
   /* ── Video helpers ──────────────────────────────────────────────── */
 
   /** Collect all <video> elements in this frame and same-origin iframes. */
@@ -105,15 +144,26 @@
   function broadcastRate(rate) {
     const msg = { type: MSG_TYPE, rate };
     document.querySelectorAll('iframe').forEach(iframe => {
-      try { iframe.contentWindow.postMessage(msg, '*'); } catch (_) {}
+      try {
+        const origin = getIframeOrigin(iframe);
+        if (isTrustedOrigin(origin)) {
+          iframe.contentWindow.postMessage(msg, origin);
+        }
+      } catch (_) {}
     });
     if (window !== window.top) {
-      try { window.parent.postMessage(msg, '*'); } catch (_) {}
+      try {
+        const parentOrigin = getTrustedParentOrigin();
+        if (parentOrigin) {
+          window.parent.postMessage(msg, parentOrigin);
+        }
+      } catch (_) {}
     }
   }
 
   /* Listen for rate broadcasts from other frames. */
   window.addEventListener('message', e => {
+    if (!isTrustedOrigin(e.origin)) return;
     if (e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
       applyRate(e.data.rate, /* broadcast */ false);
     }
