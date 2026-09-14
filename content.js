@@ -22,6 +22,12 @@
    */
   let enforcedRate = null;
 
+  /** Validates origins for cross-frame message passing. */
+  function isTrustedOrigin(origin) {
+    if (origin === window.location.origin) return true;
+    return /^https:\/\/(?:[a-zA-Z0-9-]+\.)*echo360\.(com|org\.au|net\.au)$/.test(origin);
+  }
+
   /* ── Speed-label detection ───────────────────────────────────────── */
 
   /** Returns true if el's text content looks like a playback-speed label. */
@@ -114,6 +120,7 @@
 
   /* Listen for rate broadcasts from other frames. */
   window.addEventListener('message', e => {
+    if (!isTrustedOrigin(e.origin)) return;
     if (e.data?.type === MSG_TYPE && typeof e.data.rate === 'number') {
       applyRate(e.data.rate, /* broadcast */ false);
     }
