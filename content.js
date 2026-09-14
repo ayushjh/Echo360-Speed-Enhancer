@@ -377,17 +377,35 @@
 
   /* ── Update the label on the control-bar toggle button ──────────── */
 
+  let cachedToggles = null;
+
   function updateToggleLabel(rate) {
+    if (cachedToggles) {
+      cachedToggles = cachedToggles.filter(el => el.isConnected);
+    }
+
+    let candidates;
+    if (cachedToggles && cachedToggles.length > 0) {
+      candidates = cachedToggles;
+    } else {
+      cachedToggles = [];
+      candidates = Array.from(document.querySelectorAll(
+        'button, [role="button"], [class*="speed" i], [class*="rate" i], [class*="control" i], [class*="player" i]'
+      ));
+    }
+
     const container = document.querySelector(`[${CONTAINER_ATTR}]`);
-    const candidates = document.querySelectorAll(
-      'button, [role="button"], [class*="speed" i], [class*="rate" i], [class*="control" i], [class*="player" i]'
-    );
+
     candidates.forEach(el => {
       if (container?.contains(el)) return;
       if (el.hasAttribute(BUTTON_ATTR)) return;
 
       const t = el.textContent.trim();
       if (t.length > 10 || !/^\d+(?:\.\d+)?\s*[x×]$/i.test(t)) return;
+
+      if (candidates !== cachedToggles && !cachedToggles.includes(el)) {
+        cachedToggles.push(el);
+      }
 
       const node = walkTextNodes(el, n => /\d/.test(n.textContent));
       if (node) {
